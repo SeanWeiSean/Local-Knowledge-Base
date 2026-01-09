@@ -56,6 +56,18 @@ namespace LocalKnowledgeBase.Services
         }
 
         /// <summary>
+        /// 从缓存中移除摘要
+        /// </summary>
+        public void RemoveSummary(string filePath)
+        {
+            if (_cache.ContainsKey(filePath))
+            {
+                _cache.Remove(filePath);
+                SaveCache();
+            }
+        }
+
+        /// <summary>
         /// 从磁盘加载缓存
         /// </summary>
         private Dictionary<string, CachedSummary> LoadCache()

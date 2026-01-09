@@ -6,6 +6,24 @@
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
+    
+    <!-- 应用程序信息 -->
+    <AssemblyTitle>本地知识库助手</AssemblyTitle>
+    <AssemblyDescription>基于Ollama的本地知识库WPF应用程序，支持Word/Excel文档的智能问答</AssemblyDescription>
+    <AssemblyCompany>LocalKnowledgeBase</AssemblyCompany>
+    <AssemblyProduct>本地知识库助手</AssemblyProduct>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Copyright>Copyright © 2026</Copyright>
+    
+    <!-- 发布配置 -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishTrimmed>false</PublishTrimmed>
+      <!-- 应用程序图标 -->
+    <!-- <ApplicationIcon>icon.ico</ApplicationIcon> -->
   </PropertyGroup>
 
   <ItemGroup>

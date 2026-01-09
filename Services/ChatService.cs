@@ -15,8 +15,20 @@ namespace LocalKnowledgeBase.Services
     public class ChatService : IChatService
     {
         private readonly HttpClient _httpClient;
-        private readonly string _endpoint;
-        private readonly string _modelName;
+        private string _endpoint;
+        private string _modelName;
+
+        public string ModelName
+        {
+            get => _modelName;
+            set => _modelName = value;
+        }
+
+        public string Endpoint
+        {
+            get => _endpoint;
+            set => _endpoint = value;
+        }
 
         public ChatService()
         {
@@ -25,7 +37,7 @@ namespace LocalKnowledgeBase.Services
 
             // 从配置文件读取设置
             _endpoint = ConfigurationManager.AppSettings["OllamaEndpoint"] ?? "http://localhost:11434/api/chat";
-            _modelName = ConfigurationManager.AppSettings["ModelName"] ?? "llama2";
+            _modelName = ConfigurationManager.AppSettings["ModelName"] ?? "qwen2.5:1.5b";
         }
 
         public async Task<string> GenerateSummaryAsync(string text)

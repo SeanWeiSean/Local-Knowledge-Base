@@ -1,0 +1,16 @@
+<Project Sdk="WixToolset.Sdk/4.0.5">
+  <PropertyGroup>
+    <ProductVersion>1.0.0</ProductVersion>
+    <OutputName>LocalKnowledgeBaseSetup</OutputName>
+    <OutputType>Package</OutputType>
+    <WixTargetsPath Condition="'$(WixTargetsPath)' == '' and '$(MSBuildExtensionsPath32)' != ''">$(MSBuildExtensionsPath32)\Microsoft\WiX\v3.x\Wix.targets</WixTargetsPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="4.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="LocalKnowledgeBase.csproj" />
+  </ItemGroup>
+</Project>

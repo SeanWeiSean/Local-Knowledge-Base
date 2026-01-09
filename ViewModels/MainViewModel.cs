@@ -22,24 +22,31 @@ namespace LocalKnowledgeBase.ViewModels
         {
             _documentService = new DocumentService();
             _chatService = new ChatService();
-            _summaryCacheService = new SummaryCacheService();
-
-            Documents = new ObservableCollection<DocumentItem>();
-            ChatMessages = new ObservableCollection<ChatMessage>();
-
-            // 初始化命令
+            _summaryCacheService = new SummaryCacheService();            Documents = new ObservableCollection<DocumentItem>();
+            ChatMessages = new ObservableCollection<ChatMessage>();            // 初始化命令
             AddFileCommand = new RelayCommand(OnAddFile);
             AddFolderCommand = new RelayCommand(OnAddFolder);
             RemoveDocumentCommand = new RelayCommand<DocumentItem>(OnRemoveDocument);
             GenerateSummaryCommand = new RelayCommand<DocumentItem>(OnGenerateSummary, CanGenerateSummary);
+            RemoveSummaryCommand = new RelayCommand<DocumentItem>(OnRemoveSummary, CanRemoveSummary);
             SendMessageCommand = new RelayCommand(OnSendMessage, CanSendMessage);
+            ToggleSettingsCommand = new RelayCommand(OnToggleSettings);
+
+            // 初始化模型设置
+            _modelName = _chatService.ModelName;
+            _ollamaEndpoint = _chatService.Endpoint;
 
             // 添加欢迎消息
             ChatMessages.Add(new ChatMessage
             {
                 Role = MessageRole.Assistant,
-                Content = "您好！我是本地知识库助手。请先在左侧添加文档并生成摘要，然后您就可以向我提问了。"
+                Content = "您好！我是本地知识库助手。请先在左侧添加文档并生成摘要，然后您就可以向我提问了。\n\n💡 提示：点击右上角的⚙️按钮可以配置AI模型。"
             });
+        }
+
+        private void OnToggleSettings(object? parameter)
+        {
+            IsSettingsOpen = !IsSettingsOpen;
         }
 
         #region Properties
@@ -70,13 +77,45 @@ namespace LocalKnowledgeBase.ViewModels
         {
             get => _isProcessing;
             set => SetProperty(ref _isProcessing, value);
-        }
-
-        private bool _useKnowledgeBase = true;
+        }        private bool _useKnowledgeBase = true;
         public bool UseKnowledgeBase
         {
             get => _useKnowledgeBase;
             set => SetProperty(ref _useKnowledgeBase, value);
+        }
+
+        // 设置面板相关属性
+        private bool _isSettingsOpen = false;
+        public bool IsSettingsOpen
+        {
+            get => _isSettingsOpen;
+            set => SetProperty(ref _isSettingsOpen, value);
+        }
+
+        private string _modelName = "qwen2.5:1.5b";
+        public string ModelName
+        {
+            get => _modelName;
+            set
+            {
+                if (SetProperty(ref _modelName, value))
+                {
+                    _chatService.ModelName = value;
+                }
+            }
+        }
+
+        private string _ollamaEndpoint = "http://localhost:11434/api/chat";
+        public string OllamaEndpoint
+        {
+            get => _ollamaEndpoint;
+            set
+            {
+                if (SetProperty(ref _ollamaEndpoint, value))
+                {
+                    _chatService.Endpoint = value;
+                }
+            }
         }
 
         // 对话历史（用于上下文）
@@ -93,6 +132,8 @@ namespace LocalKnowledgeBase.ViewModels
         public ICommand RemoveDocumentCommand { get; }
         public ICommand GenerateSummaryCommand { get; }
         public ICommand SendMessageCommand { get; }
+        public ICommand ToggleSettingsCommand { get; }
+        public ICommand RemoveSummaryCommand { get; private set; }
 
         #endregion
 
@@ -259,9 +300,7 @@ namespace LocalKnowledgeBase.ViewModels
         private bool CanSendMessage(object? parameter)
         {
             return !string.IsNullOrWhiteSpace(UserInput) && !IsProcessing;
-        }
-
-        private async void OnSendMessage(object? parameter)
+        }        private async void OnSendMessage(object? parameter)
         {
             if (string.IsNullOrWhiteSpace(UserInput)) return;
 
@@ -294,29 +333,7 @@ namespace LocalKnowledgeBase.ViewModels
                 
                 if (UseKnowledgeBase)
                 {
-                    // 1. 筛选相关文档
-                    var relevantDocs = FindRelevantDocuments(userQuestion);
-                    
-                    if (relevantDocs.Count == 0)
-                    {
-                        response = "抱歉，当前没有可用的知识库文档。请先添加文档并生成摘要，或关闭知识库模式进行普通对话。";
-                        ChatMessages.Remove(loadingMessage);
-                        ChatMessages.Add(new ChatMessage { Role = MessageRole.Assistant, Content = response });
-                        IsProcessing = false;
-                        return;
-                    }
-                    
-                    // 2. 构建上下文：相关文档摘要 + 压缩对话历史
-                    var docContext = string.Join("\n\n", relevantDocs.Select(d => 
-                        $"[文档: {d.FileName}]\n{d.Summary}"));
-                    
-                    context = docContext;
-                    if (!string.IsNullOrWhiteSpace(_compressedHistory))
-                    {
-                        context = $"对话历史摘要：\n{_compressedHistory}\n\n{docContext}";
-                    }
-                    
-                    response = await _chatService.AskQuestionAsync(userQuestion, context);
+                    response = await ProcessKnowledgeBaseQuestion(userQuestion);
                 }
                 else
                 {
@@ -362,6 +379,40 @@ namespace LocalKnowledgeBase.ViewModels
             }
         }
 
+        private bool CanRemoveSummary(DocumentItem? document)
+        {
+            return document != null && document.IsSummarized && !IsProcessing;
+        }
+
+        private void OnRemoveSummary(DocumentItem? document)
+        {
+            if (document == null) return;
+
+            try
+            {
+                // 删除摘要文件
+                if (!string.IsNullOrEmpty(document.SummaryPath) && File.Exists(document.SummaryPath))
+                {
+                    File.Delete(document.SummaryPath);
+                }
+
+                // 从缓存中移除
+                _summaryCacheService.RemoveSummary(document.FilePath);
+
+                // 更新文档状态
+                document.Summary = string.Empty;
+                document.SummaryPath = string.Empty;
+                document.IsSummarized = false;
+
+                // 通知UI更新
+                OnPropertyChanged(nameof(Documents));
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"删除摘要失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         /// <summary>
         /// 根据问题筛选相关文档
         /// </summary>
@@ -399,9 +450,7 @@ namespace LocalKnowledgeBase.ViewModels
             var keywords = questionLower.Split(new[] { ' ', '，', '。', '？', '！', '\n', '\r' }, 
                 StringSplitOptions.RemoveEmptyEntries)
                 .Where(w => w.Length > 1)
-                .ToList();
-
-            foreach (var keyword in keywords)
+                .ToList();            foreach (var keyword in keywords)
             {
                 if (fileNameLower.Contains(keyword)) score += 10;
                 if (summaryLower.Contains(keyword)) score += 5;
@@ -433,6 +482,58 @@ namespace LocalKnowledgeBase.ViewModels
             catch
             {
                 // 压缩失败，保持原样
+            }
+        }        /// <summary>
+        /// 处理知识库问题：同时使用摘要和原文
+        /// </summary>
+        private async Task<string> ProcessKnowledgeBaseQuestion(string userQuestion)
+        {
+            // 获取所有已生成摘要的文档
+            var relevantDocs = Documents.Where(d => d.IsSummarized).Take(3).ToList();
+            
+            if (relevantDocs.Count == 0)
+            {
+                return "抱歉，当前没有可用的知识库文档。请先添加文档并生成摘要，或关闭知识库模式进行普通对话。";
+            }
+
+            try
+            {
+                // 构建包含摘要和原文的完整上下文
+                var contextParts = new List<string>();
+                
+                foreach (var doc in relevantDocs)
+                {
+                    try
+                    {
+                        // 读取原文
+                        string fullText = await _documentService.ExtractTextAsync(doc.FilePath, doc.Type);
+                        
+                        // 同时包含摘要和原文
+                        var docContext = $"[文档: {doc.FileName}]\n" +
+                                        $"【摘要】\n{doc.Summary}\n\n" +
+                                        $"【原文】\n{fullText}";
+                        contextParts.Add(docContext);
+                    }
+                    catch
+                    {
+                        // 如果读取原文失败，只使用摘要
+                        contextParts.Add($"[文档: {doc.FileName}]\n【摘要】\n{doc.Summary}");
+                    }
+                }
+
+                var fullContext = string.Join("\n\n---\n\n", contextParts);
+                
+                if (!string.IsNullOrWhiteSpace(_compressedHistory))
+                {
+                    fullContext = $"对话历史摘要：\n{_compressedHistory}\n\n{fullContext}";
+                }
+
+                // 使用完整上下文进行回答
+                return await _chatService.AskQuestionAsync(userQuestion, fullContext);
+            }
+            catch (Exception ex)
+            {
+                return $"处理知识库问题时出错: {ex.Message}";
             }
         }
 

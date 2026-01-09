@@ -8,6 +8,16 @@ namespace LocalKnowledgeBase.Services
     public interface IChatService
     {
         /// <summary>
+        /// 模型名称
+        /// </summary>
+        string ModelName { get; set; }
+
+        /// <summary>
+        /// API端点
+        /// </summary>
+        string Endpoint { get; set; }
+
+        /// <summary>
         /// 生成文档摘要
         /// </summary>
         Task<string> GenerateSummaryAsync(string text);

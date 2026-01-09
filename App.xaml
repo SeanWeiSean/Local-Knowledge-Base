@@ -7,27 +7,40 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <!-- Material Design -->
-                <materialDesign:BundledTheme BaseTheme="Dark" PrimaryColor="Cyan" SecondaryColor="Amber" />
+                <!-- Material Design - 现代紫色主题 -->
+                <materialDesign:BundledTheme BaseTheme="Dark" PrimaryColor="DeepPurple" SecondaryColor="Lime" />
                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Defaults.xaml" />
             </ResourceDictionary.MergedDictionaries>
             
+            <!-- 自定义颜色资源 -->
+            <Color x:Key="ModernPurpleColor">#7C4DFF</Color>
+            <Color x:Key="ModernPurpleDarkColor">#651FFF</Color>
+            <SolidColorBrush x:Key="ModernPurple" Color="#7C4DFF"/>
+            <SolidColorBrush x:Key="ModernAccent" Color="#00E676"/>
+            <SolidColorBrush x:Key="ModernBackground" Color="#0D0D14"/>
+            <SolidColorBrush x:Key="ModernSurface" Color="#1A1A24"/>
+            <SolidColorBrush x:Key="ModernSurfaceLight" Color="#252536"/>
+            <SolidColorBrush x:Key="ModernText" Color="#E8E8F0"/>
+            <SolidColorBrush x:Key="ModernTextSecondary" Color="#9090A8"/>
+            
+            <!-- 渐变画刷 -->
+            <LinearGradientBrush x:Key="ModernGradient" StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#7C4DFF" Offset="0"/>
+                <GradientStop Color="#536DFE" Offset="1"/>
+            </LinearGradientBrush>
+            
             <!-- 全局字体设置 -->
             <Style TargetType="{x:Type Window}">
-                <Setter Property="FontFamily" Value="Microsoft YaHei UI"/>
-                <Setter Property="FontWeight" Value="Normal"/>
+                <Setter Property="FontFamily" Value="Segoe UI, Microsoft YaHei UI"/>
             </Style>
             <Style TargetType="{x:Type TextBlock}">
-                <Setter Property="FontFamily" Value="Microsoft YaHei UI"/>
-                <Setter Property="FontWeight" Value="Normal"/>
+                <Setter Property="FontFamily" Value="Segoe UI, Microsoft YaHei UI"/>
             </Style>
             <Style TargetType="{x:Type TextBox}">
-                <Setter Property="FontFamily" Value="Microsoft YaHei UI"/>
-                <Setter Property="FontWeight" Value="Normal"/>
+                <Setter Property="FontFamily" Value="Segoe UI, Microsoft YaHei UI"/>
             </Style>
             <Style TargetType="{x:Type Button}">
-                <Setter Property="FontFamily" Value="Microsoft YaHei UI"/>
-                <Setter Property="FontWeight" Value="Normal"/>
+                <Setter Property="FontFamily" Value="Segoe UI, Microsoft YaHei UI"/>
             </Style>
         </ResourceDictionary>
     </Application.Resources>
