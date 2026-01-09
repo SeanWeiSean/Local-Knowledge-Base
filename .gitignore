@@ -67,6 +67,7 @@ artifacts/
 # Test files
 test_*.ps1
 samplefiles/
+SampleDoc/
 
 # Cache files
 summary_cache.json
