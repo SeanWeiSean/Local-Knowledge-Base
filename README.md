@@ -2,12 +2,12 @@
 
 <div align="center">
 
-![.NET](https://img.shields.io/badge/.NET-7.0-512BD4?style=flat-square&logo=dotnet)
-![WPF](https://img.shields.io/badge/WPF-Windows-0078D4?style=flat-square&logo=windows)
+![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?style=flat-square&logo=dotnet)
+![WPF](https://img.shields.io/badge/WPF--UI-4.2.0-0078D4?style=flat-square&logo=windows)
 ![Ollama](https://img.shields.io/badge/Ollama-Local%20AI-00BCD4?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
-基于 **Ollama** 的本地知识库 WPF 应用程序，支持 Word/Excel 文档的智能问答，采用现代化 Material Design 界面。
+基于 **Ollama** 的本地知识库 WPF 应用程序，支持 Word/Excel 文档的智能问答，采用现代化 Fluent Design 界面。
 
 [功能特点](#功能特点) • [快速开始](#快速开始) • [技术栈](#技术栈) • [项目结构](#项目结构)
 
@@ -18,24 +18,31 @@
 ## ✨ 功能特点
 
 ### 📁 知识库管理
-- ✅ **多格式支持** - Word（.docx, .doc）和 Excel（.xlsx, .xls）文档
+- ✅ **多格式支持** - Word（.docx, .doc）、Excel（.xlsx, .xls）、PowerPoint（.pptx, .ppt）
 - ✅ **批量导入** - 支持添加整个文件夹，自动扫描所有文档
 - ✅ **智能限制** - 最多 10 个文档，保证查询效率
 - ✅ **AI 摘要生成** - 自动提取文档关键内容，生成结构化摘要
+- ✅ **一键生成摘要** - 批量为所有未生成摘要的文档生成摘要
 - ✅ **摘要缓存** - 删除文档后保留摘要，重新添加无需重复生成
-- ✅ **状态可视化** - 红色"生成摘要"按钮 → 绿色"已完成"芯片
+- ✅ **状态可视化** - 清晰显示文档摘要和索引状态
+
+### 🔍 向量语义搜索（RAG）
+- ✅ **向量索引** - 使用嵌入模型将文档分块并建立向量索引
+- ✅ **语义检索** - 基于余弦相似度的语义搜索，找到最相关的文档片段
+- ✅ **两阶段问答** - 先分析相关文档，再基于原文精确回答
+- ✅ **向量库管理** - 可视化查看、删除向量索引
 
 ### 💬 智能问答
 - ✅ **双模式切换** - 知识库模式（文档问答）+ 普通对话模式（纯 AI 聊天）
+- ✅ **流式输出** - 实时显示 AI 回复，支持 Token 统计
 - ✅ **智能上下文** - 自动筛选相关文档，关键词匹配评分
 - ✅ **对话压缩** - 每 3 轮自动压缩历史，保持上下文连贯性
-- ✅ **现代 UI** - Material Design 风格，青蓝色渐变，圆角气泡设计
-- ✅ **实时反馈** - 加载动画，思考状态显示
+- ✅ **可选中文本** - 聊天内容可复制选中
 
 ### 🎨 界面设计
-- ✅ **Material Design** - 暗黑主题，Cyan/Amber 配色
-- ✅ **渐变效果** - 聊天气泡、输入框、按钮均采用线性渐变
-- ✅ **统一字体** - Microsoft YaHei UI，清晰易读
+- ✅ **Fluent Design** - 采用 WPF-UI 4.2.0，现代化 Windows 11 风格
+- ✅ **Mica 背景** - 半透明云母效果，美观大方
+- ✅ **统一字体** - Microsoft YaHei，清晰易读
 - ✅ **圆角设计** - 现代化圆角卡片和按钮
 - ✅ **醒目开关** - 知识库模式开关，状态一目了然
 
@@ -45,16 +52,20 @@
 
 ### 前置要求
 
-1. **安装 .NET 7.0 SDK**
+1. **安装 .NET 8.0 SDK**
    ```bash
-   winget install Microsoft.DotNet.SDK.7
+   winget install Microsoft.DotNet.SDK.8
    ```
 
 2. **安装 Ollama**
    - 下载：https://ollama.ai
-   - 安装后运行：
+   - 安装后拉取必需模型：
      ```bash
-     ollama pull qwen2.5:1.5b
+     # 聊天模型（必需）
+     ollama pull qwen3:1.7b
+     
+     # 嵌入模型（向量搜索必需）
+     ollama pull nomic-embed-text
      ```
 
 ### 运行应用
@@ -87,14 +98,36 @@
 
 ## 🛠 技术栈
 
-- **.NET 7.0** - 目标框架
+### 运行时依赖
+
+| 依赖 | 版本 | 说明 |
+|------|------|------|
+| **.NET** | 8.0 | 目标框架 |
+| **Ollama** | 最新 | 本地大语言模型服务 |
+
+### Ollama 模型依赖
+
+| 模型 | 用途 | 安装命令 |
+|------|------|---------|
+| **qwen3:1.7b** | 聊天模型（默认） | `ollama pull qwen3:1.7b` |
+| **nomic-embed-text** | 嵌入模型（向量搜索） | `ollama pull nomic-embed-text` |
+
+> 💡 聊天模型可在应用内设置中更换，嵌入模型可在 `App.config` 中配置
+
+### NuGet 包依赖
+
+| 包名 | 版本 | 用途 |
+|------|------|------|
+| **WPF-UI** | 4.2.0 | Fluent Design UI 框架 |
+| **DocumentFormat.OpenXml** | 3.4.1 | Word/PPT 文档处理 |
+| **EPPlus** | 8.4.1 | Excel 文档处理 |
+| **Newtonsoft.Json** | 13.0.4 | JSON 序列化 |
+
+### 架构
+
 - **WPF** - Windows Presentation Foundation UI 框架
 - **MVVM** - Model-View-ViewModel 架构模式
-- **Material Design** - MaterialDesignThemes.Wpf UI 库
-- **DocumentFormat.OpenXml** - Word 文档处理（.docx）
-- **EPPlus** - Excel 文档处理（.xlsx）
-- **Newtonsoft.Json** - JSON 序列化
-- **Ollama** - 本地大语言模型服务（qwen2.5:1.5b）
+- **RAG** - Retrieval-Augmented Generation 检索增强生成
 
 ---
 
@@ -103,8 +136,8 @@
 ```
 LocalKnowledgeBase/
 ├── Models/                           # 数据模型
-│   ├── DocumentItem.cs              # 文档项模型（支持 INotifyPropertyChanged）
-│   ├── DocumentType.cs              # 文档类型枚举
+│   ├── DocumentItem.cs              # 文档项模型（支持索引状态）
+│   ├── VectorIndexItem.cs           # 向量索引项模型
 │   ├── ChatMessage.cs               # 聊天消息模型
 │   └── ChatCompletionModels.cs      # Ollama API 请求/响应模型
 ├── ViewModels/                       # MVVM 视图模型
@@ -115,20 +148,48 @@ LocalKnowledgeBase/
 │   ├── IDocumentService.cs          # 文档服务接口
 │   ├── DocumentService.cs           # 文档文本提取服务
 │   ├── IChatService.cs              # 聊天服务接口
-│   ├── ChatService.cs               # Ollama API 调用服务
-│   └── SummaryCacheService.cs       # 摘要缓存持久化服务
+│   ├── ChatService.cs               # Ollama API 调用服务（流式）
+│   ├── SummaryCacheService.cs       # 摘要缓存持久化服务
+│   ├── EmbeddingService.cs          # 嵌入向量服务
+│   └── VectorStoreService.cs        # 向量存储与搜索服务
 ├── Converters/                       # XAML 值转换器
 │   └── BoolToVisibilityConverter.cs # 布尔到可见性转换
-├── MainWindow.xaml                   # 主窗口 UI（Material Design）
+├── MainWindow.xaml                   # 主窗口 UI（Fluent Design）
 ├── MainWindow.xaml.cs               # 主窗口代码隐藏
 ├── App.xaml                          # 应用程序资源（主题配置）
 ├── App.xaml.cs                       # 应用程序入口
+├── App.config                        # 应用配置（模型设置）
 └── LocalKnowledgeBase.csproj         # 项目文件
 ```
 
 ---
 
 ## 🎯 核心特性详解
+
+### 两阶段 RAG 问答
+
+**第一阶段：文档分析**
+- 通过向量语义搜索找到最相关的文档片段
+- AI 分析这些片段与问题的相关性
+- 判断是否有足够的信息来回答问题
+
+**第二阶段：精确回答**
+- 基于筛选出的相关原文进行回答
+- 确保答案有据可依，避免幻觉
+
+### 向量语义搜索
+
+**文档分块**
+- 每个文档被分割成 500 字符的块，50 字符重叠
+- 使用嵌入模型将每个块转换为向量
+
+**语义检索**
+- 用户问题也被转换为向量
+- 通过余弦相似度找到最相关的 Top-5 块
+
+**向量存储**
+- 向量数据保存在：`%AppData%\LocalKnowledgeBase\vector_store.json`
+- 支持增量索引和单独删除
 
 ### 智能上下文管理
 
@@ -145,7 +206,7 @@ LocalKnowledgeBase/
 
 摘要数据保存在：
 ```
-%LocalAppData%\LocalKnowledgeBase\summary_cache.json
+%AppData%\LocalKnowledgeBase\summary_cache.json
 ```
 
 **缓存内容包括：**
@@ -158,31 +219,46 @@ LocalKnowledgeBase/
 
 | 模式 | 描述 | 上下文来源 |
 |------|------|-----------|
-| **知识库模式** | 基于文档内容回答 | 相关文档摘要 + 压缩历史 |
+| **知识库模式** | 基于文档内容回答 | 向量检索 + 相关文档摘要 + 压缩历史 |
 | **普通对话** | 纯 AI 聊天 | 仅压缩历史 |
 
 ---
 
 ## ⚙️ 配置说明
 
-### Ollama 配置
+### App.config 配置
 
-默认端点：`http://localhost:11434/api/chat`  
-默认模型：`qwen2.5:1.5b`
-
-可在 [ChatService.cs](Services/ChatService.cs) 中修改：
-```csharp
-private readonly string _ollamaEndpoint = "http://localhost:11434/api/chat";
-private readonly string _modelName = "qwen2.5:1.5b";
+```xml
+<appSettings>
+  <add key="OllamaEndpoint" value="http://localhost:11434/api/chat" />
+  <add key="ModelName" value="qwen3:1.7b" />
+  <add key="EmbeddingModel" value="nomic-embed-text" />
+</appSettings>
 ```
 
-### 推荐模型
+| 配置项 | 说明 | 默认值 |
+|--------|------|--------|
+| `OllamaEndpoint` | Ollama API 端点 | `http://localhost:11434/api/chat` |
+| `ModelName` | 聊天模型名称 | `qwen3:1.7b` |
+| `EmbeddingModel` | 嵌入模型名称 | `nomic-embed-text` |
+
+> 💡 聊天模型也可在应用内设置面板中实时修改
+
+### 推荐聊天模型
 
 | 模型 | 大小 | 适用场景 |
 |------|------|---------|
-| qwen2.5:1.5b | ~1GB | 轻量级，速度快，中文友好 ✅ |
+| qwen3:1.7b | ~1.2GB | 轻量级，速度快，中文友好 ✅ |
 | llama3.2:3b | ~2GB | 平衡性能和速度 |
-| qwen2.5:7b | ~4.7GB | 高质量回答，需要更多资源 |
+| qwen3:8b | ~5GB | 高质量回答，需要更多资源 |
+
+### 推荐嵌入模型
+
+| 模型 | 大小 | 说明 |
+|------|------|------|
+| nomic-embed-text | ~274MB | 高质量文本嵌入，支持 8192 token ✅ |
+| mxbai-embed-large | ~670MB | 更大的嵌入维度 |
+| all-minilm | ~46MB | 超轻量级，速度最快 |
 
 ---
 
@@ -209,9 +285,10 @@ private readonly string _modelName = "qwen2.5:1.5b";
 ## 🙏 致谢
 
 - [Ollama](https://ollama.ai) - 本地大模型运行时
-- [MaterialDesignInXamlToolkit](https://github.com/MaterialDesignInXAML/MaterialDesignInXamlToolkit) - Material Design UI 组件
+- [WPF-UI](https://github.com/lepoco/wpfui) - Fluent Design UI 组件
 - [DocumentFormat.OpenXml](https://github.com/OfficeDev/Open-XML-SDK) - Office 文档处理
 - [EPPlus](https://github.com/EPPlusSoftware/EPPlus) - Excel 文件处理
+- [nomic-embed-text](https://ollama.ai/library/nomic-embed-text) - 文本嵌入模型
 
 ---
 
@@ -222,42 +299,3 @@ private readonly string _modelName = "qwen2.5:1.5b";
 Made with ❤️ by SeanWeiSean
 
 </div>
-  "model": "llama2",
-  "created_at": "2024-01-09T...",
-  "message": {
-    "role": "assistant",
-    "content": "AI回复内容"
-  },
-  "done": true
-}
-```
-
-## 依赖包
-
-- `DocumentFormat.OpenXml` (3.0.0) - 处理 Word 文档
-- `EPPlus` (7.0.0) - 处理 Excel 文档
-- `Newtonsoft.Json` (13.0.3) - JSON 处理
-
-## 注意事项
-
-1. **EPPlus 许可证**：本项目使用 EPPlus 的非商业许可证。如用于商业用途，请购买商业许可证。
-2. **Ollama 服务**：确保 Ollama 服务在后台运行，默认端口为 11434。
-3. **文档大小**：为避免超过模型上下文限制，文档提取的文本会被限制在 10000 字符以内。
-4. **模型选择**：可以在 `App.config` 中更换不同的 Ollama 模型（如 llama2, mistral, qwen 等）。
-
-## 扩展功能（待实现）
-
-- [ ] 支持更多文档格式（PDF、TXT等）
-- [ ] 向量数据库集成，实现更精确的语义检索
-- [ ] 对话历史记录
-- [ ] 导出对话内容
-- [ ] 批量处理文档
-- [ ] 自定义提示词模板
-
-## 许可证
-
-MIT License
-
-## 贡献
-
-欢迎提交 Issue 和 Pull Request！

@@ -189,6 +189,44 @@ namespace LocalKnowledgeBase.Services
             await SendChatRequestStreamAsync(request, onChunk);
         }
 
+        public async Task FindRelevantDocumentsStreamAsync(string question, string documentSummaries, Action<string, ChatCompletionResponse?> onChunk)
+        {
+            var prompt = $@"请根据用户的问题，判断与哪些文档最相关。
+
+用户问题：{question}
+
+文档列表：
+{documentSummaries}
+
+请分析用户问题，指出最相关的文档名称，并简要说明为什么相关。格式如下：
+📎 相关文档：[文档名]
+💡 原因：[简要说明]
+
+如果有多个相关文档，请列出所有相关的。如果没有相关文档，请说明原因。";
+
+            var request = new ChatCompletionRequest
+            {
+                model = _modelName,
+                messages = new List<ChatCompletionMessage>
+                {
+                    new ChatCompletionMessage
+                    {
+                        role = "system",
+                        content = "你是文档相关性分析助手。根据用户问题判断与哪些文档相关，并简要说明原因。"
+                    },
+                    new ChatCompletionMessage
+                    {
+                        role = "user",
+                        content = prompt
+                    }
+                },
+                stream = true,
+                temperature = 0.3
+            };
+
+            await SendChatRequestStreamAsync(request, onChunk);
+        }
+
         public async Task<string> CompressConversationAsync(string conversationHistory)
         {
             var prompt = $@"请用简洁的语言总结以下对话，保留关键信息：

@@ -30,6 +30,11 @@
                      Icon="pack://application:,,,/icon.ico">
             <ui:TitleBar.Header>
                 <StackPanel Orientation="Horizontal" Margin="0,0,8,0">
+                    <ui:Button Icon="{ui:SymbolIcon Database24}" 
+                              Appearance="Transparent"
+                              Command="{Binding ToggleVectorStoreCommand}"
+                              ToolTip="向量库管理"
+                              Margin="0,0,4,0"/>
                     <ui:Button Icon="{ui:SymbolIcon Settings24}" 
                               Appearance="Transparent"
                               Command="{Binding ToggleSettingsCommand}"
@@ -123,6 +128,20 @@
                                                     </StackPanel>
                                                 </ui:Badge>
 
+                                                <!-- 索引状态标签 -->
+                                                <ui:Badge Appearance="Caution"
+                                                         Visibility="{Binding IsIndexed, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                         Margin="0,0,6,0"
+                                                         ToolTip="向量索引已建立">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <ui:SymbolIcon Symbol="Database24" FontSize="12" Margin="0,0,4,0"/>
+                                                        <TextBlock FontSize="11">
+                                                            <Run Text="{Binding ChunkCount, Mode=OneWay}"/>
+                                                            <Run Text="块"/>
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                </ui:Badge>
+
                                                 <!-- 删除摘要按钮 -->
                                                 <ui:Button Content="删除摘要"
                                                           Icon="{ui:SymbolIcon Delete24}"
@@ -167,6 +186,16 @@
                                   Height="44"
                                   FontSize="14"
                                   Margin="0,8,0,0"/>
+                        
+                        <ui:Button Content="一键生成摘要"
+                                  Icon="{ui:SymbolIcon Sparkle24}"
+                                  Appearance="Primary"
+                                  Command="{Binding GenerateAllSummariesCommand}"
+                                  HorizontalAlignment="Stretch"
+                                  Height="44"
+                                  FontSize="14"
+                                  Margin="0,12,0,0"
+                                  ToolTip="为所有未生成摘要的文档生成摘要"/>
                     </StackPanel>
                 </Grid>
             </Border>
@@ -363,6 +392,145 @@
                     </Grid>
                 </Border>
             </Grid>
+
+            <!-- 向量库管理面板（弹出层） -->
+            <Border Grid.Column="0" 
+                   Grid.ColumnSpan="2"
+                   Panel.ZIndex="100"
+                   Visibility="{Binding IsVectorStoreOpen, Converter={StaticResource BoolToVisibilityConverter}}"
+                   Background="#CC000000">
+                <Grid>
+                    <!-- 点击外部关闭 -->
+                    <Border Background="Transparent">
+                        <Border.InputBindings>
+                            <MouseBinding MouseAction="LeftClick" Command="{Binding ToggleVectorStoreCommand}"/>
+                        </Border.InputBindings>
+                    </Border>
+                    
+                    <!-- 向量库管理卡片 -->
+                    <ui:Card HorizontalAlignment="Center" 
+                            VerticalAlignment="Center"
+                            Padding="32"
+                            Width="600"
+                            MaxHeight="600">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- 标题 -->
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,20">
+                                <Border Background="{StaticResource AppleGradientPurple}" 
+                                       CornerRadius="12" 
+                                       Padding="10" 
+                                       Margin="0,0,16,0">
+                                    <ui:SymbolIcon Symbol="Database24" 
+                                                  FontSize="24" 
+                                                  Foreground="White"/>
+                                </Border>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="向量库管理" 
+                                              FontSize="20" 
+                                              FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding VectorStoreStats}" 
+                                              FontSize="13" 
+                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                              Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- 说明 -->
+                            <ui:InfoBar Grid.Row="1"
+                                       IsOpen="True"
+                                       IsClosable="False"
+                                       Severity="Informational"
+                                       Title="向量索引"
+                                       Message="向量索引用于语义搜索，支持查找与问题语义相关的文档片段。"
+                                       Margin="0,0,0,16"/>
+
+                            <!-- 已索引文档列表 -->
+                            <ScrollViewer Grid.Row="2" 
+                                         VerticalScrollBarVisibility="Auto"
+                                         MaxHeight="300">
+                                <ItemsControl ItemsSource="{Binding VectorStoreItems}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                                   CornerRadius="8"
+                                                   Padding="12"
+                                                   Margin="0,0,0,8">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <ui:SymbolIcon Grid.Column="0" 
+                                                                  Symbol="Document24" 
+                                                                  FontSize="16"
+                                                                  Foreground="{StaticResource AccentBrush}"
+                                                                  Margin="0,0,12,0"/>
+
+                                                    <TextBlock Grid.Column="1" 
+                                                              Text="{Binding FileName}" 
+                                                              FontWeight="Medium"
+                                                              VerticalAlignment="Center"
+                                                              TextTrimming="CharacterEllipsis"
+                                                              ToolTip="{Binding FilePath}"/>
+
+                                                    <ui:Badge Grid.Column="2" 
+                                                             Appearance="Caution"
+                                                             Margin="8,0">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <ui:SymbolIcon Symbol="TextBulletListSquare24" FontSize="12"/>
+                                                            <TextBlock Text="{Binding ChunkCount, StringFormat={}{0} 块}" 
+                                                                      FontSize="11"
+                                                                      Margin="4,0,0,0"/>
+                                                        </StackPanel>
+                                                    </ui:Badge>
+
+                                                    <ui:Button Grid.Column="3"
+                                                              Icon="{ui:SymbolIcon Delete24}"
+                                                              Appearance="Danger"
+                                                              Command="{Binding DataContext.DeleteVectorIndexCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                              CommandParameter="{Binding}"
+                                                              ToolTip="删除此文档的向量索引"
+                                                              Padding="6"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+
+                            <!-- 底部按钮 -->
+                            <StackPanel Grid.Row="3" Margin="0,16,0,0">
+                                <ui:Button Content="清空所有向量索引"
+                                          Icon="{ui:SymbolIcon DeleteDismiss24}"
+                                          Appearance="Danger"
+                                          Command="{Binding ClearAllVectorIndexCommand}"
+                                          HorizontalAlignment="Stretch"
+                                          Height="40"
+                                          FontSize="13"
+                                          Margin="0,0,0,12"/>
+                                
+                                <ui:Button Content="关闭"
+                                          Icon="{ui:SymbolIcon Dismiss24}"
+                                          Command="{Binding ToggleVectorStoreCommand}"
+                                          Appearance="Secondary"
+                                          HorizontalAlignment="Stretch"
+                                          Height="40"
+                                          FontSize="13"/>
+                            </StackPanel>
+                        </Grid>
+                    </ui:Card>
+                </Grid>
+            </Border>
 
             <!-- 设置面板（弹出层） -->
             <Border Grid.Column="0" 

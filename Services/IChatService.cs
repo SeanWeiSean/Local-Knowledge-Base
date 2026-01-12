@@ -38,5 +38,10 @@ namespace LocalKnowledgeBase.Services
         /// 压缩对话历史
         /// </summary>
         Task<string> CompressConversationAsync(string conversationHistory);
+
+        /// <summary>
+        /// 判断用户问题与哪些文档相关（流式）
+        /// </summary>
+        Task FindRelevantDocumentsStreamAsync(string question, string documentSummaries, Action<string, ChatCompletionResponse?> onChunk);
     }
 }

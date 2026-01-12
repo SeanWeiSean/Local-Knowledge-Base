@@ -4,9 +4,11 @@ using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Presentation;
 using OfficeOpenXml;
 using LocalKnowledgeBase.Models;
 using DocType = LocalKnowledgeBase.Models.DocumentType;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace LocalKnowledgeBase.Services
 {
@@ -17,8 +19,8 @@ namespace LocalKnowledgeBase.Services
     {
         public DocumentService()
         {
-            // 设置EPPlus许可证上下文
-            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            // 设置EPPlus许可证（EPPlus 8.x 新方式）
+            ExcelPackage.License.SetNonCommercialPersonal("LocalKnowledgeBase");
         }
 
         public async Task<string> ExtractTextAsync(string filePath, DocType type)
@@ -33,6 +35,8 @@ namespace LocalKnowledgeBase.Services
                             return ExtractWordText(filePath);
                         case DocType.Excel:
                             return ExtractExcelText(filePath);
+                        case DocType.PowerPoint:
+                            return ExtractPowerPointText(filePath);
                         case DocType.Folder:
                             return $"文件夹: {Path.GetFileName(filePath)}";
                         default:
@@ -122,6 +126,48 @@ namespace LocalKnowledgeBase.Services
                     }
 
                     text.AppendLine();
+                }
+            }
+
+            return text.ToString();
+        }
+
+        private string ExtractPowerPointText(string filePath)
+        {
+            var text = new StringBuilder();
+
+            using (PresentationDocument pptDoc = PresentationDocument.Open(filePath, false))
+            {
+                var presentationPart = pptDoc.PresentationPart;
+                if (presentationPart?.Presentation?.SlideIdList != null)
+                {
+                    int slideNumber = 1;
+                    foreach (var slideId in presentationPart.Presentation.SlideIdList.Elements<SlideId>())
+                    {
+                        var slidePart = (SlidePart?)presentationPart.GetPartById(slideId.RelationshipId!);
+                        if (slidePart?.Slide != null)
+                        {
+                            text.AppendLine($"幻灯片 {slideNumber}:");
+                            text.AppendLine(new string('-', 30));
+
+                            // 提取所有文本
+                            foreach (var paragraph in slidePart.Slide.Descendants<A.Paragraph>())
+                            {
+                                var paragraphText = new StringBuilder();
+                                foreach (var textElement in paragraph.Descendants<A.Text>())
+                                {
+                                    paragraphText.Append(textElement.Text);
+                                }
+                                if (paragraphText.Length > 0)
+                                {
+                                    text.AppendLine(paragraphText.ToString());
+                                }
+                            }
+
+                            text.AppendLine();
+                            slideNumber++;
+                        }
+                    }
                 }
             }
 

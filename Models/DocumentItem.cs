@@ -35,6 +35,34 @@ namespace LocalKnowledgeBase.Models
             }
         }
 
+        private bool _isIndexed = false;
+        public bool IsIndexed
+        {
+            get => _isIndexed;
+            set
+            {
+                if (_isIndexed != value)
+                {
+                    _isIndexed = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        private int _chunkCount = 0;
+        public int ChunkCount
+        {
+            get => _chunkCount;
+            set
+            {
+                if (_chunkCount != value)
+                {
+                    _chunkCount = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public string? SummaryPath { get; set; }
         public string? Summary { get; set; }
         public DocumentType Type { get; set; }
@@ -44,6 +72,7 @@ namespace LocalKnowledgeBase.Models
     {
         Word,
         Excel,
+        PowerPoint,
         Folder
     }
 }

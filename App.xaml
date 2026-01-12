@@ -10,6 +10,20 @@
                 <ui:ControlsDictionary />
             </ResourceDictionary.MergedDictionaries>
             
+            <!-- 全局字体 -->
+            <Style TargetType="Window">
+                <Setter Property="FontFamily" Value="Microsoft YaHei UI"/>
+            </Style>
+            <Style TargetType="TextBlock">
+                <Setter Property="FontFamily" Value="Microsoft YaHei UI"/>
+            </Style>
+            <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                <Setter Property="FontFamily" Value="Microsoft YaHei UI"/>
+            </Style>
+            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                <Setter Property="FontFamily" Value="Microsoft YaHei UI"/>
+            </Style>
+            
             <!-- 苹果风格颜色 -->
             <SolidColorBrush x:Key="AccentBrush" Color="#0A84FF"/>
             <SolidColorBrush x:Key="AccentBrushHover" Color="#409CFF"/>
