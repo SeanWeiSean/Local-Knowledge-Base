@@ -411,7 +411,7 @@
                                       FontWeight="Medium"
                                       Margin="0,0,0,8"/>
                             <ui:TextBox Text="{Binding ModelName, UpdateSourceTrigger=PropertyChanged}"
-                                       PlaceholderText="例如: qwen2.5:1.5b, llama2, mistral..."
+                                       PlaceholderText="例如: qwen3:1.7b, llama2, mistral..."
                                        Margin="0,0,0,20"/>
                             
                             <!-- API 端点 -->

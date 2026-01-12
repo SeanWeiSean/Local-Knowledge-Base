@@ -38,7 +38,7 @@ namespace LocalKnowledgeBase.Services
 
             // 从配置文件读取设置
             _endpoint = ConfigurationManager.AppSettings["OllamaEndpoint"] ?? "http://localhost:11434/api/chat";
-            _modelName = ConfigurationManager.AppSettings["ModelName"] ?? "qwen2.5:1.5b";
+            _modelName = ConfigurationManager.AppSettings["ModelName"] ?? "qwen3:1.7b";
         }
 
         public async Task<string> GenerateSummaryAsync(string text)
