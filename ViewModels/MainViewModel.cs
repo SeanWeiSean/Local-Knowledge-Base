@@ -18,6 +18,9 @@ namespace LocalKnowledgeBase.ViewModels
         private readonly IChatService _chatService;
         private readonly SummaryCacheService _summaryCacheService;
 
+        // 请求滚动到底部的事件
+        public event Action? ScrollToBottomRequested;
+
         public MainViewModel()
         {
             _documentService = new DocumentService();
@@ -312,52 +315,62 @@ namespace LocalKnowledgeBase.ViewModels
 
             ChatMessages.Add(userMessage);
             _conversationHistory.Add(userMessage);
+            ScrollToBottomRequested?.Invoke();
 
             var userQuestion = UserInput;
             UserInput = string.Empty;
 
-            // 添加加载消息
-            var loadingMessage = new ChatMessage
+            // 创建 AI 回复消息（流式填充）
+            var assistantMessage = new ChatMessage
             {
                 Role = MessageRole.Assistant,
-                Content = "正在思考...",
+                Content = "",
                 IsLoading = true
             };
-            ChatMessages.Add(loadingMessage);
+            ChatMessages.Add(assistantMessage);
+            ScrollToBottomRequested?.Invoke();
 
             IsProcessing = true;
+            var startTime = DateTime.Now;
+            
             try
             {
-                string response;
                 string context = string.Empty;
                 
                 if (UseKnowledgeBase)
                 {
-                    response = await ProcessKnowledgeBaseQuestion(userQuestion);
+                    // 获取知识库上下文
+                    context = await GetKnowledgeBaseContext(userQuestion);
                 }
-                else
+                else if (!string.IsNullOrWhiteSpace(_compressedHistory))
                 {
-                    // 普通对话模式，只带上压缩历史
-                    if (!string.IsNullOrWhiteSpace(_compressedHistory))
+                    context = _compressedHistory;
+                }
+
+                // 使用流式请求
+                await _chatService.AskQuestionStreamAsync(userQuestion, context, (chunk, finalResponse) =>
+                {
+                    Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                     {
-                        context = _compressedHistory;
-                    }
-                    response = await _chatService.AskQuestionAsync(userQuestion, context);
-                }
+                        assistantMessage.Content += chunk;
+                        ScrollToBottomRequested?.Invoke();
 
-                // 移除加载消息
-                ChatMessages.Remove(loadingMessage);
+                        // 当收到最终响应时，计算 token 统计
+                        if (finalResponse != null)
+                        {
+                            var elapsed = (DateTime.Now - startTime).TotalSeconds;
+                            var evalCount = finalResponse.eval_count;
+                            var tokensPerSecond = elapsed > 0 ? evalCount / elapsed : 0;
+                            
+                            assistantMessage.TokenStats = $"📊 {evalCount} tokens · {tokensPerSecond:F1} tokens/s · {elapsed:F1}s";
+                            assistantMessage.IsLoading = false;
+                        }
+                    }));
+                });
 
-                // 添加AI回复
-                var assistantMessage = new ChatMessage
-                {
-                    Role = MessageRole.Assistant,
-                    Content = response
-                };
-                ChatMessages.Add(assistantMessage);
                 _conversationHistory.Add(assistantMessage);
                 
-                // 3. 定期压缩对话历史（每3轮）
+                // 定期压缩对话历史（每3轮）
                 _messagesSinceLastCompression++;
                 if (_messagesSinceLastCompression >= 3)
                 {
@@ -366,12 +379,8 @@ namespace LocalKnowledgeBase.ViewModels
             }
             catch (Exception ex)
             {
-                ChatMessages.Remove(loadingMessage);
-                ChatMessages.Add(new ChatMessage
-                {
-                    Role = MessageRole.Assistant,
-                    Content = $"抱歉，发生了错误: {ex.Message}"
-                });
+                assistantMessage.Content = $"抱歉，发生了错误: {ex.Message}";
+                assistantMessage.IsLoading = false;
             }
             finally
             {
@@ -488,12 +497,25 @@ namespace LocalKnowledgeBase.ViewModels
         /// </summary>
         private async Task<string> ProcessKnowledgeBaseQuestion(string userQuestion)
         {
+            var context = await GetKnowledgeBaseContext(userQuestion);
+            if (string.IsNullOrEmpty(context))
+            {
+                return "抱歉，当前没有可用的知识库文档。请先添加文档并生成摘要，或关闭知识库模式进行普通对话。";
+            }
+            return await _chatService.AskQuestionAsync(userQuestion, context);
+        }
+
+        /// <summary>
+        /// 获取知识库上下文
+        /// </summary>
+        private async Task<string> GetKnowledgeBaseContext(string userQuestion)
+        {
             // 获取所有已生成摘要的文档
             var relevantDocs = Documents.Where(d => d.IsSummarized).Take(3).ToList();
             
             if (relevantDocs.Count == 0)
             {
-                return "抱歉，当前没有可用的知识库文档。请先添加文档并生成摘要，或关闭知识库模式进行普通对话。";
+                return string.Empty;
             }
 
             try
@@ -528,12 +550,11 @@ namespace LocalKnowledgeBase.ViewModels
                     fullContext = $"对话历史摘要：\n{_compressedHistory}\n\n{fullContext}";
                 }
 
-                // 使用完整上下文进行回答
-                return await _chatService.AskQuestionAsync(userQuestion, fullContext);
+                return fullContext;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return $"处理知识库问题时出错: {ex.Message}";
+                return string.Empty;
             }
         }
 

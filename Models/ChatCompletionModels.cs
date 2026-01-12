@@ -28,5 +28,13 @@ namespace LocalKnowledgeBase.Models
         public string created_at { get; set; } = string.Empty;
         public ChatCompletionMessage? message { get; set; }
         public bool done { get; set; }
+        
+        // Token 统计 (Ollama 在 done=true 时返回，值很大需要用 long)
+        public long total_duration { get; set; }
+        public long load_duration { get; set; }
+        public long prompt_eval_count { get; set; }
+        public long prompt_eval_duration { get; set; }
+        public long eval_count { get; set; }
+        public long eval_duration { get; set; }
     }
 }

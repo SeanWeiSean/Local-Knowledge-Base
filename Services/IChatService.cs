@@ -1,4 +1,6 @@
+using System;
 using System.Threading.Tasks;
+using LocalKnowledgeBase.Models;
 
 namespace LocalKnowledgeBase.Services
 {
@@ -26,6 +28,11 @@ namespace LocalKnowledgeBase.Services
         /// 根据上下文回答问题
         /// </summary>
         Task<string> AskQuestionAsync(string question, string context);
+
+        /// <summary>
+        /// 根据上下文回答问题（流式）
+        /// </summary>
+        Task AskQuestionStreamAsync(string question, string context, Action<string, ChatCompletionResponse?> onChunk);
 
         /// <summary>
         /// 压缩对话历史

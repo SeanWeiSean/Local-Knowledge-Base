@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.IO;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -135,6 +136,59 @@ namespace LocalKnowledgeBase.Services
             return await SendChatRequestAsync(request);
         }
 
+        public async Task AskQuestionStreamAsync(string question, string context, Action<string, ChatCompletionResponse?> onChunk)
+        {
+            // 限制上下文长度
+            if (context.Length > 6000)
+            {
+                context = context.Substring(0, 6000) + "...";
+            }
+
+            string prompt;
+            string systemPrompt;
+
+            if (string.IsNullOrWhiteSpace(context))
+            {
+                prompt = question;
+                systemPrompt = "你是一个智能助手，用中文回答用户的问题。";
+            }
+            else
+            {
+                prompt = $@"基于以下知识库内容回答用户的问题。
+
+知识库内容：
+{context}
+
+用户问题：
+{question}
+
+请根据知识库内容用中文回答问题。如果知识库中没有相关信息，请明确告知用户。";
+                systemPrompt = "你是一个智能问答助手，根据提供的知识库内容准确回答用户的问题。请用中文回答。";
+            }
+
+            var request = new ChatCompletionRequest
+            {
+                model = _modelName,
+                messages = new List<ChatCompletionMessage>
+                {
+                    new ChatCompletionMessage
+                    {
+                        role = "system",
+                        content = systemPrompt
+                    },
+                    new ChatCompletionMessage
+                    {
+                        role = "user",
+                        content = prompt
+                    }
+                },
+                stream = true,
+                temperature = 0.7
+            };
+
+            await SendChatRequestStreamAsync(request, onChunk);
+        }
+
         public async Task<string> CompressConversationAsync(string conversationHistory)
         {
             var prompt = $@"请用简洁的语言总结以下对话，保留关键信息：
@@ -183,6 +237,54 @@ namespace LocalKnowledgeBase.Services
                 var result = JsonConvert.DeserializeObject<ChatCompletionResponse>(responseBody);
 
                 return result?.message?.content ?? "抱歉，没有收到有效的回复。";
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new Exception($"连接到AI服务失败。请确保Ollama服务正在运行。错误: {ex.Message}", ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"AI请求失败: {ex.Message}", ex);
+            }
+        }
+
+        private async Task SendChatRequestStreamAsync(ChatCompletionRequest request, Action<string, ChatCompletionResponse?> onChunk)
+        {
+            try
+            {
+                var json = JsonConvert.SerializeObject(request);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var httpRequest = new HttpRequestMessage(HttpMethod.Post, _endpoint)
+                {
+                    Content = content
+                };
+
+                using var response = await _httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
+                response.EnsureSuccessStatusCode();
+
+                using var stream = await response.Content.ReadAsStreamAsync();
+                using var reader = new StreamReader(stream, Encoding.UTF8, false, 1024, true);
+
+                string? line;
+                while ((line = await reader.ReadLineAsync()) != null)
+                {
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+
+                    try
+                    {
+                        var chunk = JsonConvert.DeserializeObject<ChatCompletionResponse>(line);
+                        if (chunk != null)
+                        {
+                            var text = chunk.message?.content ?? "";
+                            onChunk(text, chunk.done ? chunk : null);
+                        }
+                    }
+                    catch (JsonException)
+                    {
+                        // 忽略解析错误的行
+                    }
+                }
             }
             catch (HttpRequestException ex)
             {
